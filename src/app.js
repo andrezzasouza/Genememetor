@@ -28,9 +28,18 @@ app.get("/health", (_req, res) => {
   res.send("Genememetor is up and running!");
 });
 
-// body => username, email, password, confirmPassword
-app.post("/user/signup", async (req, res) => {
-  const { username, email, password } = req.body;
+app.post("/signup", async (req, res) => {
+
+  if (!req.body.username || !req.body.password || !req.body.confirmPassword || !req.body.email) {
+    return res.status(422).send("Invalid body format! Please check the data and try again.");
+  }
+
+  const sanitizedBody = {
+    username: stripHtml(req.body.username).result.trim(),
+    email: stripHtml(req.body.email).result.trim(),
+    password: stripHtml(req.body.password).result.trim(),
+    confirmPassword: stripHtml(req.body.confirmPassword).result.trim(),
+  };
 
   const signUpSchema = Joi.object({
     username: Joi.string().min(3).max(20).required(),
@@ -39,7 +48,9 @@ app.post("/user/signup", async (req, res) => {
     confirmPassword: Joi.string().valid(Joi.ref("password")).required(),
   });
 
-  const validationResult = signUpSchema.validate(req.body);
+  const validationResult = signUpSchema.validate(sanitizedBody, {
+    abortEarly: false,
+  });
 
   if (validationResult.error) {
     const errors = validationResult.error.details.map((error) => error.message);
@@ -47,22 +58,17 @@ app.post("/user/signup", async (req, res) => {
     return res.status(422).send(errors);
   }
 
+  const { email, password, username } = sanitizedBody;
+
   try {
     const validName = await db.collection("users").findOne({ username });
     const validEmail = await db.collection("users").findOne({ email });
 
     if (validEmail || validName) {
-      let warningMessage;
-
-      if (validEmail && !validName) {
-        warningMessage = "e-mail";
-      }
-      if (!validEmail && validName) {
-        warningMessage = "username";
-      }
-      if (validEmail && validName) {
-        warningMessage = "e-mail and username";
-      }
+      const warningMessage =
+        (validEmail ? "e-mail" : "") +
+        (validEmail && validName ? " and " : "") +
+        (validName ? "username" : "");
 
       return res
         .status(409)
@@ -71,17 +77,25 @@ app.post("/user/signup", async (req, res) => {
         );
     }
 
+    const hashedPassword = bcrypt.hashSync(password, 10);
+
+    delete req.body.password;
+    delete req.body.confirmPassword;
+
     await db.collection("users").insertOne({
       email,
       username,
-      password,
+      hashedPassword,
     });
+
+    res.sendStatus(201);
   } catch (error) {
+    console.error(error);
     res.status(500).send(error.message);
   }
 });
 
-app.post("/user/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -91,21 +105,21 @@ app.post("/user/login", (req, res) => {
   }
 });
 
-app.put("/user/:id", (req, res) => {
+app.put("/user/:id", async (req, res) => {
   const { id } = req.params;
 });
 
-app.delete("/user/:id", (req, res) => {
+app.delete("/user/:id", async (req, res) => {
   const { id } = req.params;
 });
 
-app.get("/memes", (req, res) => {
+app.get("/memes", async (req, res) => {
   const { username, category } = req.query;
   //filter by user
   //filter by category
 });
 
-app.post("/memes", (req, res) => {
+app.post("/memes", async (req, res) => {
   const { description, image, category } = req.body;
 
   if (!description || !image || !category) {
@@ -115,15 +129,15 @@ app.post("/memes", (req, res) => {
   }
 });
 
-app.put("/memes/:memeId", (req, res) => {
+app.put("/memes/:memeId", async (req, res) => {
   const { memeId } = req.params;
 });
 
-app.delete("/memes/:memeId", (req, res) => {
+app.delete("/memes/:memeId", async (req, res) => {
   const { memeId } = req.params;
 });
 
-app.get("/memes/random", (_req, res) => {});
+app.get("/memes/random", async (_req, res) => {});
 
 const PORT = process.env.PORT || 5000;
 
