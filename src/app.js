@@ -3,7 +3,7 @@ import express, { json } from "express";
 import { MongoClient } from "mongodb";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { v4 } from "uuid";
+import { v4 as uuid } from "uuid";
 import cors from "cors";
 import Joi from "joi";
 
@@ -29,16 +29,19 @@ app.get("/health", (_req, res) => {
 });
 
 app.post("/signup", async (req, res) => {
+  const { username, password, confirmPassword, email } = req.body;
 
-  if (!req.body.username || !req.body.password || !req.body.confirmPassword || !req.body.email) {
-    return res.status(422).send("Invalid body format! Please check the data and try again.");
+  if (!username || !password || !confirmPassword || !email) {
+    return res
+      .status(422)
+      .send("Invalid body format! Please check the data and try again.");
   }
 
   const sanitizedBody = {
-    username: stripHtml(req.body.username).result.trim(),
-    email: stripHtml(req.body.email).result.trim(),
-    password: stripHtml(req.body.password).result.trim(),
-    confirmPassword: stripHtml(req.body.confirmPassword).result.trim(),
+    username: stripHtml(username).result.trim(),
+    email: stripHtml(email).result.trim(),
+    password: stripHtml(password).result.trim(),
+    confirmPassword: stripHtml(confirmPassword).result.trim(),
   };
 
   const signUpSchema = Joi.object({
@@ -58,11 +61,15 @@ app.post("/signup", async (req, res) => {
     return res.status(422).send(errors);
   }
 
-  const { email, password, username } = sanitizedBody;
+  const {
+    email: cleanEmail,
+    password: cleanPassword,
+    username: cleanUsername,
+  } = sanitizedBody;
 
   try {
-    const validName = await db.collection("users").findOne({ username });
-    const validEmail = await db.collection("users").findOne({ email });
+    const validName = await db.collection("users").findOne({ cleanUsername });
+    const validEmail = await db.collection("users").findOne({ cleanEmail });
 
     if (validEmail || validName) {
       const warningMessage =
@@ -77,15 +84,15 @@ app.post("/signup", async (req, res) => {
         );
     }
 
-    const hashedPassword = bcrypt.hashSync(password, 10);
+    const hashedPassword = bcrypt.hashSync(cleanPassword, 10);
 
-    delete req.body.password;
-    delete req.body.confirmPassword;
+    delete req.password;
+    delete req.confirmPassword;
 
     await db.collection("users").insertOne({
-      email,
-      username,
-      hashedPassword,
+      email: cleanEmail,
+      username: cleanUsername,
+      password: hashedPassword,
     });
 
     res.sendStatus(201);
@@ -96,12 +103,65 @@ app.post("/signup", async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
 
-  if (!email || !password) {
+  if (!username || !password) {
     return res
       .status(422)
-      .send("Invalid data! Please, correct it and try again.");
+      .send("Invalid body format! Please check the data and try again.");
+  }
+
+  const sanitizedBody = {
+    username: stripHtml(username).result.trim(),
+    password: stripHtml(password).result.trim(),
+  };
+
+  const signUpSchema = Joi.object({
+    username: Joi.string().min(3).max(20).required(),
+    password: Joi.string().min(8).max(50).required(),
+  });
+
+  const validationResult = signUpSchema.validate(sanitizedBody, {
+    abortEarly: false,
+  });
+
+  if (validationResult.error) {
+    const errors = validationResult.error.details.map((error) => error.message);
+    console.error(errors);
+    return res.status(422).send(errors);
+  }
+
+  const { password: cleanPassword, username: cleanUsername } = sanitizedBody;
+
+  try {
+    const userData = await db
+      .collection("users")
+      .findOne({ username: cleanUsername });
+
+    if (!userData)
+      return res
+        .status(404)
+        .send("User not found! Please check and try again.");
+
+    const checkedPassword = bcrypt.compareSync(
+      cleanPassword,
+      userData.password
+    );
+
+    if (!checkedPassword)
+      return res
+        .status(401)
+        .send(
+          "Username and password combination is incorrect! Please, check and try again."
+        );
+
+    const token = uuid();
+    await db.collection("sessions").insertOne({ userId: userData._id, token });
+
+    res.send(token);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
   }
 });
 
@@ -114,7 +174,7 @@ app.delete("/user/:id", async (req, res) => {
 });
 
 app.get("/memes", async (req, res) => {
-  const { username, category } = req.query;
+  const { category } = req.query;
   //filter by user
   //filter by category
 });
