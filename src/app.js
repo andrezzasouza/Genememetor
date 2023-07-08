@@ -180,12 +180,98 @@ app.get("/memes", async (req, res) => {
 });
 
 app.post("/memes", async (req, res) => {
-  const { description, image, category } = req.body;
+  const { description, imageURL, category } = req.body;
+  const { authorization } = req.headers;
 
-  if (!description || !image || !category) {
-    return res
-      .status(422)
-      .send("Invalid data! Please, correct it and try again.");
+  const token = authorization?.replace("Bearer ", "");
+
+  if (!token) {
+    return res.sendStatus(401);
+  }
+
+  try {
+    const session = await db.collection("sessions").findOne({ token });
+
+    if (!session) {
+      return res.sendStatus(401);
+    }
+
+    if (!description || !imageURL || !category) {
+      return res
+        .status(422)
+        .send("Invalid data! Please, correct it and try again.");
+    }
+
+    const sanitizedBody = {
+      description: stripHtml(description).result.trim(),
+      imageURL: stripHtml(imageURL).result.trim(),
+      category: stripHtml(category).result.trim(),
+    };
+
+    const categoryOptions = await db.collection("categories").find().toArray();
+
+    const NewMemeSchema = Joi.object({
+      description: Joi.string().min(5).max(200).required(),
+      imageURL: Joi.string()
+        .valid(
+          Joi.uri().regex(new RegExp(`\\.(png|jpg|jpeg|gif|webp)$`)),
+          Joi.dataUri({
+            mediaType: [
+              "image/png",
+              "image/jpg",
+              "image/jpeg",
+              "image/gif",
+              "image/webp",
+            ],
+          })
+        )
+        .required(),
+      category: Joi.string()
+        .valid(categoryOptions.map((category) => category.name))
+        .required(),
+    });
+
+    const validationResult = NewMemeSchema.validate(sanitizedBody, {
+      abortEarly: false,
+    });
+
+    if (validationResult.error) {
+      const errors = validationResult.error.details.map(
+        (error) => error.message
+      );
+      console.error(errors);
+      return res.status(422).send(errors);
+    }
+
+    const {
+      description: cleanDescription,
+      imageURL: cleanImageURL,
+      category: cleanCategory,
+    } = sanitizedBody;
+
+    const existingImage = await db
+      .collection("memes")
+      .findOne({ imageURL: cleanImageURL });
+
+    if (existingImage) {
+      return res
+        .status(409)
+        .send(
+          `This meme has already been added. Please, accesses it using its id: ${existingImage._id}`
+        );
+    }
+
+    const newMeme = await db.collection("memes").insertOne({
+      description: cleanDescription,
+      imageURL: cleanImageURL,
+      category: cleanCategory,
+      creator: session.userId,
+    });
+
+    res.status(201).send(newMeme._id);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
   }
 });
 
