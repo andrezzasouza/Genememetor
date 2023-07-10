@@ -165,20 +165,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.put("/user/:id", async (req, res) => {
-  const { id } = req.params;
-});
-
-app.delete("/user/:id", async (req, res) => {
-  const { id } = req.params;
-});
-
-app.get("/memes", async (req, res) => {
-  const { category } = req.query;
-  //filter by user
-  //filter by category
-});
-
 app.post("/memes", async (req, res) => {
   const { description, imageURL, category } = req.body;
   const { authorization } = req.headers;
@@ -261,10 +247,14 @@ app.post("/memes", async (req, res) => {
         );
     }
 
+    const categoryData = await db
+      .collection("categories")
+      .findOne({ category: cleanCategory });
+
     const newMeme = await db.collection("memes").insertOne({
       description: cleanDescription,
       imageURL: cleanImageURL,
-      category: cleanCategory,
+      category: categoryData._id,
       creator: session.userId,
     });
 
@@ -273,6 +263,59 @@ app.post("/memes", async (req, res) => {
     console.error(error);
     res.status(500).send(error.message);
   }
+});
+
+app.get("/memes", async (req, res) => {
+  const { category, username } = req.query;
+
+  try {
+    if (!category && !username) {
+      const allMemes = await db.collection("memes").find().toArray();
+      return res.status(200).send(allMemes);
+    }
+
+    const getMemesQuerySchema = Joi.object({
+      username: Joi.string().min(3).max(20),
+      category: Joi.string().min(3).max(50),
+    });
+
+    const validationResult = getMemesQuerySchema.validate(req.query, {
+      abortEarly: false,
+    });
+
+    if (validationResult.error) {
+      const errors = validationResult.error.details.map(
+        (error) => error.message
+      );
+      console.error(errors);
+      return res.status(422).send(errors);
+    }
+
+    const sanitizedBody = {};
+
+    if (category) sanitizedBody.category = stripHtml(category).result.trim();
+    if (username) sanitizedBody.username = stripHtml(username).result.trim();
+
+    const { username: cleanUsername, category: cleanCategory } = sanitizedBody;
+
+    const filteredMemes = await db
+      .collection("memes")
+      .find({ username: cleanUsername, category: cleanCategory })
+      .toArray();
+
+    res.status(200).send(filteredMemes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
+});
+
+app.put("/user/:id", async (req, res) => {
+  const { id } = req.params;
+});
+
+app.delete("/user/:id", async (req, res) => {
+  const { id } = req.params;
 });
 
 app.put("/memes/:memeId", async (req, res) => {
