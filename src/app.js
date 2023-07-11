@@ -287,7 +287,6 @@ app.get("/memes", async (req, res) => {
       const errors = validationResult.error.details.map(
         (error) => error.message
       );
-      console.error(errors);
       return res.status(422).send(errors);
     }
 
@@ -298,12 +297,57 @@ app.get("/memes", async (req, res) => {
 
     const { username: cleanUsername, category: cleanCategory } = sanitizedBody;
 
+    const creatorId = await db
+      .collection("users")
+      .findOne({ username: cleanUsername });
+
     const filteredMemes = await db
       .collection("memes")
-      .find({ username: cleanUsername, category: cleanCategory })
+      .find({ username: creatorId._id, category: cleanCategory })
       .toArray();
 
     res.status(200).send(filteredMemes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/user/:username", async (req, res) => {
+  const { username } = req.params;
+
+  if (!username) return res.status(404).send("User not found!");
+
+  const sanitizedUsername = stripHtml(username).result.trim();
+
+  const usernameSchema = Joi.object({
+    username: Joi.string().min(3).max(20),
+  });
+
+  const validationResult = usernameSchema.validate(
+    { username: sanitizedUsername },
+    {
+      abortEarly: false,
+    }
+  );
+
+  if (validationResult.error) {
+    const errors = validationResult.error.details.map((error) => error.message);
+    return res.status(422).send(errors);
+  }
+
+  try {
+    const existingUsername = await db
+      .collection("users")
+      .findOne({ username: sanitizedUsername });
+
+    if (!existingUsername) return res.status(404).send("User not found!");
+
+    const userMemes = await db
+      .collection("memes")
+      .find({ userId: existingUsername._id });
+
+    res.status(200).send(userMemes);
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);
