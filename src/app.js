@@ -172,14 +172,22 @@ app.post("/memes", async (req, res) => {
   const token = authorization?.replace("Bearer ", "");
 
   if (!token) {
-    return res.sendStatus(401);
+    return res
+      .status(401)
+      .send(
+        "You don't have permission to access this! Please, check your credentials and try again."
+      );
   }
 
   try {
     const session = await db.collection("sessions").findOne({ token });
 
     if (!session) {
-      return res.sendStatus(401);
+      return res
+        .status(401)
+        .send(
+          "You don't have permission to access this! Please, check your credentials and try again."
+        );
     }
 
     if (!description || !imageURL || !category) {
@@ -199,21 +207,13 @@ app.post("/memes", async (req, res) => {
     const NewMemeSchema = Joi.object({
       description: Joi.string().min(5).max(200).required(),
       imageURL: Joi.string()
-        .valid(
-          Joi.uri().regex(new RegExp(`\\.(png|jpg|jpeg|gif|webp)$`)),
-          Joi.dataUri({
-            mediaType: [
-              "image/png",
-              "image/jpg",
-              "image/jpeg",
-              "image/gif",
-              "image/webp",
-            ],
-          })
-        )
+        .uri({
+          scheme: ["http", "https"],
+        })
+        .regex(/\.(jpg|jpeg|png|gif)$/i)
         .required(),
       category: Joi.string()
-        .valid(categoryOptions.map((category) => category.name))
+        .valid(...categoryOptions.map((category) => category.name))
         .required(),
     });
 
@@ -249,13 +249,13 @@ app.post("/memes", async (req, res) => {
 
     const categoryData = await db
       .collection("categories")
-      .findOne({ category: cleanCategory });
+      .findOne({ name: cleanCategory });
 
     const newMeme = await db.collection("memes").insertOne({
       description: cleanDescription,
       imageURL: cleanImageURL,
-      category: categoryData._id,
-      creator: session.userId,
+      categoryId: categoryData._id,
+      creatorId: session.userId,
     });
 
     res.status(201).send(newMeme._id);
@@ -361,9 +361,7 @@ app.get("/memes/random", async (_req, res) => {
       .aggregate([{ $sample: { size: 1 } }])
       .toArray();
 
-    console.log(randomMeme);
-
-    res.status(200).send(randomMeme);
+    res.status(200).send(randomMeme[0]);
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);
