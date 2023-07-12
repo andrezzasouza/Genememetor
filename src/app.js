@@ -354,6 +354,22 @@ app.get("/user/:username", async (req, res) => {
   }
 });
 
+app.get("/memes/random", async (_req, res) => {
+  try {
+    const randomMeme = await db
+      .collection("memes")
+      .aggregate([{ $sample: { size: 1 } }])
+      .toArray();
+
+    console.log(randomMeme);
+
+    res.status(200).send(randomMeme);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
+});
+
 app.put("/user/:id", async (req, res) => {
   const { id } = req.params;
 });
@@ -369,8 +385,6 @@ app.put("/memes/:memeId", async (req, res) => {
 app.delete("/memes/:memeId", async (req, res) => {
   const { memeId } = req.params;
 });
-
-app.get("/memes/random", async (_req, res) => {});
 
 const PORT = process.env.PORT || 5000;
 
