@@ -413,6 +413,9 @@ app.delete("/memes/:memeId", async (req, res) => {
 
 app.get("/categories", async (_req, res) => {
   try {
+    const categories = await db.collection("categories").find().toArray();
+
+    res.status(200).send(categories);
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);
