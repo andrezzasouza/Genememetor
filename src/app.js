@@ -1,6 +1,6 @@
 import { stripHtml } from "string-strip-html";
 import express, { json } from "express";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { v4 as uuid } from "uuid";
@@ -368,12 +368,39 @@ app.get("/memes/random", async (_req, res) => {
   }
 });
 
-app.put("/user/:id", async (req, res) => {
+app.get("/memes/:id", async (req, res) => {
   const { id } = req.params;
-});
 
-app.delete("/user/:id", async (req, res) => {
-  const { id } = req.params;
+  if (!id) {
+    return res.status(404).send("Memes not found!");
+  }
+
+  const sanitizedId = stripHtml(id).result.trim();
+
+  const idSchema = Joi.object({ id: Joi.string().length(24).required() });
+
+  const validId = idSchema.validate(
+    { id: sanitizedId },
+    {
+      abortEarly: false,
+    }
+  );
+
+  if (validId.error) {
+    const errors = validationResult.error.details.map((error) => error.message);
+    return res.status(422).send(errors);
+  }
+
+  try {
+    const idMeme = await db
+      .collection("memes")
+      .findOne({ _id: new ObjectId(sanitizedId) });
+
+    res.status(200).send(idMeme);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
 });
 
 app.put("/memes/:memeId", async (req, res) => {
@@ -382,6 +409,24 @@ app.put("/memes/:memeId", async (req, res) => {
 
 app.delete("/memes/:memeId", async (req, res) => {
   const { memeId } = req.params;
+});
+
+app.get("/categories", async (_req, res) => {
+  try {
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
+});
+app.post("/categories", async (req, res) => {});
+app.put("/categories/:id", async (req, res) => {});
+app.delete("/categories/:id", async (req, res) => {});
+
+app.put("/user/:id", async (req, res) => {
+  const { id } = req.params;
+});
+app.delete("/user/:id", async (req, res) => {
+  const { id } = req.params;
 });
 
 const PORT = process.env.PORT || 5000;
