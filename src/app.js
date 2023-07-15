@@ -1,8 +1,8 @@
 import { stripHtml } from "string-strip-html";
+import { db } from "./database/database.connection.js";
 import express, { json } from "express";
-import { MongoClient, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
-import dotenv from "dotenv";
 import { v4 as uuid } from "uuid";
 import cors from "cors";
 import Joi from "joi";
@@ -11,18 +11,6 @@ const app = express();
 
 app.use(cors());
 app.use(json());
-dotenv.config();
-
-const mongoClient = new MongoClient(process.env.DATABASE_URL);
-
-try {
-  await mongoClient.connect();
-  console.log("MongoDB is up and running!");
-} catch (err) {
-  (err) => console.error(err.message);
-}
-
-const db = mongoClient.db();
 
 app.get("/health", (_req, res) => {
   res.send("Genememetor is up and running!");
