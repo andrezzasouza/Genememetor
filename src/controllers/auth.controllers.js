@@ -1,73 +1,26 @@
 import { db } from "../database/database.connection.js";
-import { stripHtml } from "string-strip-html";
-import bcrypt from "bcrypt";
 import { v4 as uuid } from "uuid";
-import Joi from "joi";
+import bcrypt from "bcrypt";
 
-export async function signUp (req, res) {
-  const { username, password, confirmPassword, email } = req.body;
-
-  if (!username || !password || !confirmPassword || !email) {
-    return res
-      .status(422)
-      .send("Invalid body format! Please check the data and try again.");
-  }
-
-  const sanitizedBody = {
-    username: stripHtml(username).result.trim(),
-    email: stripHtml(email).result.trim(),
-    password: stripHtml(password).result.trim(),
-    confirmPassword: stripHtml(confirmPassword).result.trim(),
-  };
-
-  const signUpSchema = Joi.object({
-    username: Joi.string().min(3).max(20).required(),
-    email: Joi.string().email().required(),
-    password: Joi.string().min(8).max(50).required(),
-    confirmPassword: Joi.string().valid(Joi.ref("password")).required(),
-  });
-
-  const validationResult = signUpSchema.validate(sanitizedBody, {
-    abortEarly: false,
-  });
-
-  if (validationResult.error) {
-    const errors = validationResult.error.details.map((error) => error.message);
-    console.error(errors);
-    return res.status(422).send(errors);
-  }
-
-  const {
-    email: cleanEmail,
-    password: cleanPassword,
-    username: cleanUsername,
-  } = sanitizedBody;
+export async function signUp (_req, res) {
+  const { username, email, password } = res.locals.data;
 
   try {
-    const validName = await db.collection("users").findOne({ username: cleanUsername });
-    const validEmail = await db.collection("users").findOne({ email: cleanEmail });
+    const validData = await db.collection("users").findOne({ $or: [{ username }, { email }]});
 
-    if (validEmail || validName) {
-      const warningMessage =
-        (validEmail ? "e-mail" : "") +
-        (validEmail && validName ? " and " : "") +
-        (validName ? "username" : "");
-
+    if (validData) {
       return res
         .status(409)
         .send(
-          `Data already in use. Please, choose a different ${warningMessage} or log in.`
+          `Data already in use. Please, choose a different e-mail or username. Alternatively, log in.`
         );
     }
 
-    const hashedPassword = bcrypt.hashSync(cleanPassword, 10);
-
-    delete req.password;
-    delete req.confirmPassword;
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     await db.collection("users").insertOne({
-      email: cleanEmail,
-      username: cleanUsername,
+      email,
+      username,
       password: hashedPassword,
     });
 
@@ -79,40 +32,12 @@ export async function signUp (req, res) {
 };
 
 export async function logIn (req, res) {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res
-      .status(422)
-      .send("Invalid body format! Please check the data and try again.");
-  }
-
-  const sanitizedBody = {
-    username: stripHtml(username).result.trim(),
-    password: stripHtml(password).result.trim(),
-  };
-
-  const signUpSchema = Joi.object({
-    username: Joi.string().min(3).max(20).required(),
-    password: Joi.string().min(8).max(50).required(),
-  });
-
-  const validationResult = signUpSchema.validate(sanitizedBody, {
-    abortEarly: false,
-  });
-
-  if (validationResult.error) {
-    const errors = validationResult.error.details.map((error) => error.message);
-    console.error(errors);
-    return res.status(422).send(errors);
-  }
-
-  const { password: cleanPassword, username: cleanUsername } = sanitizedBody;
+  const { username, password } = res.locals.data;
 
   try {
     const userData = await db
       .collection("users")
-      .findOne({ username: cleanUsername });
+      .findOne({ username });
 
     if (!userData)
       return res
@@ -120,7 +45,7 @@ export async function logIn (req, res) {
         .send("User not found! Please check and try again.");
 
     const checkedPassword = bcrypt.compareSync(
-      cleanPassword,
+      password,
       userData.password
     );
 

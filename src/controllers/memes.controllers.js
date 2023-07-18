@@ -4,78 +4,12 @@ import { ObjectId } from "mongodb";
 import Joi from "joi";
 
 export async function createMeme (req, res) {
-  const { description, imageURL, category } = req.body;
-  const { authorization } = req.headers;
-
-  const token = authorization?.replace("Bearer ", "");
-
-  if (!token) {
-    return res
-      .status(401)
-      .send(
-        "You don't have permission to access this! Please, check your credentials and try again."
-      );
-  }
+  const { description, imageURL, category } = res.locals.data
 
   try {
-    const session = await db.collection("sessions").findOne({ token });
-
-    if (!session) {
-      return res
-        .status(401)
-        .send(
-          "You don't have permission to access this! Please, check your credentials and try again."
-        );
-    }
-
-    if (!description || !imageURL || !category) {
-      return res
-        .status(422)
-        .send("Invalid data! Please, correct it and try again.");
-    }
-
-    const sanitizedBody = {
-      description: stripHtml(description).result.trim(),
-      imageURL: stripHtml(imageURL).result.trim(),
-      category: stripHtml(category).result.trim(),
-    };
-
-    const categoryOptions = await db.collection("categories").find().toArray();
-
-    const NewMemeSchema = Joi.object({
-      description: Joi.string().min(5).max(200).required(),
-      imageURL: Joi.string()
-        .uri({
-          scheme: ["http", "https"],
-        })
-        .regex(/\.(jpg|jpeg|png|gif)$/i)
-        .required(),
-      category: Joi.string()
-        .valid(...categoryOptions.map((category) => category.name))
-        .required(),
-    });
-
-    const validationResult = NewMemeSchema.validate(sanitizedBody, {
-      abortEarly: false,
-    });
-
-    if (validationResult.error) {
-      const errors = validationResult.error.details.map(
-        (error) => error.message
-      );
-      console.error(errors);
-      return res.status(422).send(errors);
-    }
-
-    const {
-      description: cleanDescription,
-      imageURL: cleanImageURL,
-      category: cleanCategory,
-    } = sanitizedBody;
-
     const existingImage = await db
       .collection("memes")
-      .findOne({ imageURL: cleanImageURL });
+      .findOne({ imageURL: imageURL });
 
     if (existingImage) {
       return res
@@ -87,11 +21,11 @@ export async function createMeme (req, res) {
 
     const categoryData = await db
       .collection("categories")
-      .findOne({ name: cleanCategory });
+      .findOne({ name: category });
 
     const newMeme = await db.collection("memes").insertOne({
-      description: cleanDescription,
-      imageURL: cleanImageURL,
+      description,
+      imageURL,
       categoryId: categoryData._id,
       creatorId: session.userId,
     });

@@ -15,29 +15,8 @@ export async function getCategoriesList(_req, res) {
 
 export async function createCategory(req, res) {
   const { name } = req.body;
-  const { authorization } = req.headers;
-
-  const token = authorization?.replace("Bearer ", "");
-
-  if (!token) {
-    return res
-      .status(401)
-      .send(
-        "You don't have permission to access this! Please, check your credentials and try again."
-      );
-  }
 
   try {
-    const session = await db.collection("sessions").findOne({ token });
-
-    if (!session) {
-      return res
-        .status(401)
-        .send(
-          "You don't have permission to access this! Please, check your credentials and try again."
-        );
-    }
-
     const adminUser = await db
       .collection("admins")
       .findOne({ userId: session.userId });
