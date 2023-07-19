@@ -31,7 +31,7 @@ export async function signUp (_req, res) {
   }
 };
 
-export async function logIn (req, res) {
+export async function logIn (_req, res) {
   const { username, password } = res.locals.data;
 
   try {

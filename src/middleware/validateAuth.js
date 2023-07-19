@@ -13,7 +13,7 @@ export async function validateAuth(req, res, next) {
       );
 
   try {
-    const session = await db.collection("sessao").findOne({ token });
+    const session = await db.collection("sessions").findOne({ token });
     
     if (!session) {
       return res

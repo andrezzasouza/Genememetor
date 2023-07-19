@@ -1,9 +1,7 @@
-import { stripHtml } from "string-strip-html";
 import { db } from "../database/database.connection.js";
 import { ObjectId } from "mongodb";
-import Joi from "joi";
 
-export async function createMeme (req, res) {
+export async function createMeme (_req, res) {
   const { description, imageURL, category } = res.locals.data
 
   try {
@@ -37,8 +35,8 @@ export async function createMeme (req, res) {
   }
 };
 
-export async function getAllMemes (req, res) {
-  const { category, username } = req.query;
+export async function getAllMemes (_req, res) {
+  const { category, username } = res.locals.data;
 
   try {
     if (!category && !username) {
@@ -46,36 +44,13 @@ export async function getAllMemes (req, res) {
       return res.status(200).send(allMemes);
     }
 
-    const getMemesQuerySchema = Joi.object({
-      username: Joi.string().min(3).max(20),
-      category: Joi.string().min(3).max(50),
-    });
-
-    const validationResult = getMemesQuerySchema.validate(req.query, {
-      abortEarly: false,
-    });
-
-    if (validationResult.error) {
-      const errors = validationResult.error.details.map(
-        (error) => error.message
-      );
-      return res.status(422).send(errors);
-    }
-
-    const sanitizedBody = {};
-
-    if (category) sanitizedBody.category = stripHtml(category).result.trim();
-    if (username) sanitizedBody.username = stripHtml(username).result.trim();
-
-    const { username: cleanUsername, category: cleanCategory } = sanitizedBody;
-
     const creatorId = await db
       .collection("users")
-      .findOne({ username: cleanUsername });
+      .findOne({ username });
 
     const filteredMemes = await db
       .collection("memes")
-      .find({ username: creatorId._id, category: cleanCategory })
+      .find({ username: creatorId._id, category: category })
       .toArray();
 
     res.status(200).send(filteredMemes);
@@ -100,26 +75,10 @@ export async function getRandomMeme (_req, res) {
 };
 
 export async function getIdMeme (req, res) {
-  const { id } = req.params;
+  const { id } = res.locals.data;
 
   if (!id) {
     return res.status(404).send("Memes not found!");
-  }
-
-  const sanitizedId = stripHtml(id).result.trim();
-
-  const idSchema = Joi.object({ id: Joi.string().length(24).required() });
-
-  const validId = idSchema.validate(
-    { id: sanitizedId },
-    {
-      abortEarly: false,
-    }
-  );
-
-  if (validId.error) {
-    const errors = validationResult.error.details.map((error) => error.message);
-    return res.status(422).send(errors);
   }
 
   try {

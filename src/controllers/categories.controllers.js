@@ -1,6 +1,4 @@
 import { db } from "../database/database.connection.js";
-import { stripHtml } from "string-strip-html";
-import Joi from "joi";
 
 export async function getCategoriesList(_req, res) {
   try {
@@ -13,8 +11,8 @@ export async function getCategoriesList(_req, res) {
   }
 }
 
-export async function createCategory(req, res) {
-  const { name } = req.body;
+export async function createCategory(_req, res) {
+  const { session, data: {name}  } = res.locals;
 
   try {
     const adminUser = await db
@@ -29,37 +27,9 @@ export async function createCategory(req, res) {
         );
     }
 
-    if (!name) {
-      return res
-        .status(422)
-        .send("Invalid body format! Please check the data and try again.");
-    }
-
-    const sanitizedBody = {
-      name: stripHtml(name).result.trim(),
-    };
-
-    const categorySchema = Joi.object({
-      name: Joi.string().min(3).max(50).required(),
-    });
-
-    const validationResult = categorySchema.validate(sanitizedBody, {
-      abortEarly: false,
-    });
-
-    if (validationResult.error) {
-      const errors = validationResult.error.details.map(
-        (error) => error.message
-      );
-      console.error(errors);
-      return res.status(422).send(errors);
-    }
-
-    const { name: cleanName } = sanitizedBody;
-
     const existingCategory = await db
       .collection("categories")
-      .findOne({ name: cleanName });
+      .findOne({ name });
 
     if (existingCategory) {
       return res
@@ -69,11 +39,11 @@ export async function createCategory(req, res) {
         );
     }
 
-    await db.collection("categories").insertOne({ name: cleanName });
+    await db.collection("categories").insertOne({ name });
 
     res
       .status(201)
-      .send(`A new category has been created under the name ${cleanName}.`);
+      .send(`A new category has been created under the name ${name}.`);
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);

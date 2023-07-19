@@ -1,3 +1,5 @@
+import { validateAuth } from "../middleware/validateAuth.js";
+import { validateSchema } from "../middleware/validateSchema.js";
 import { Router } from "express";
 import {
   getAllMemes,
@@ -7,8 +9,6 @@ import {
   deleteIdMeme,
   getIdMeme,
 } from "../controllers/memes.controllers.js";
-import { validateAuth } from "../middleware/validateAuth.js";
-import { validateSchema } from "../middleware/validateSchema.js";
 import {
   newMemeSchema,
   getMemesQuerySchema,
