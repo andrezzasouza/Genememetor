@@ -45,4 +45,9 @@ export const getMemesQuerySchema = Joi.object({
     .max(50),
 });
 
-export const idSchema = Joi.object({ id: Joi.string().length(24).required() });
+export const idSchema = Joi.object({
+  id: Joi.string()
+    .custom((value) => stripHtml(value).result.trim().replace(" ", ""))
+    .length(24)
+    .required(),
+});

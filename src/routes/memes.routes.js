@@ -18,15 +18,29 @@ import {
 const memesRouter = Router();
 
 memesRouter.get("/memes", validateSchema(getMemesQuerySchema), getAllMemes);
+
 memesRouter.post(
   "/memes",
   validateAuth,
   validateSchema(newMemeSchema),
   createMeme
 );
+
 memesRouter.get("/memes/random", getRandomMeme);
 memesRouter.get("/memes/:memeId", validateSchema(idSchema), getIdMeme);
-memesRouter.put("/memes/:memeId", editIdMeme);
-memesRouter.delete("/memes/:memeId", deleteIdMeme);
+
+memesRouter.put(
+  "/memes/:memeId",
+  validateAuth,
+  validateSchema(idSchema),
+  editIdMeme
+);
+
+memesRouter.delete(
+  "/memes/:memeId",
+  validateAuth,
+  validateSchema(idSchema),
+  deleteIdMeme
+);
 
 export default memesRouter;

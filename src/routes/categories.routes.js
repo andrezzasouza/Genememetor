@@ -12,13 +12,26 @@ import { categorySchema } from "../schemas/categories.schemas.js";
 const categoriesRouter = Router();
 
 categoriesRouter.get("/categories", getCategoriesList);
+
 categoriesRouter.post(
   "/categories",
   validateAuth,
   validateSchema(categorySchema),
   createCategory
 );
-categoriesRouter.put("/categories/:id", editCategory);
-categoriesRouter.delete("/categories/:id", deleteCategory);
+
+categoriesRouter.put(
+  "/categories/:id",
+  validateAuth,
+  validateSchema(categorySchema),
+  editCategory
+);
+
+categoriesRouter.delete(
+  "/categories/:id",
+  validateAuth,
+  validateSchema(categorySchema),
+  deleteCategory
+);
 
 export default categoriesRouter;

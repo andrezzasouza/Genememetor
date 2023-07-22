@@ -1,34 +1,14 @@
 import { db } from "../database/database.connection.js";
-import { stripHtml } from "string-strip-html";
-import Joi from "joi";
 
-export async function getUserMemes(req, res) {
-  const { username } = req.params;
+export async function getUserMemes(_req, res) {
+  const { username } = res.locals.data;
 
   if (!username) return res.status(404).send("User not found!");
-
-  const sanitizedUsername = stripHtml(username).result.trim();
-
-  const usernameSchema = Joi.object({
-    username: Joi.string().min(3).max(20),
-  });
-
-  const validationResult = usernameSchema.validate(
-    { username: sanitizedUsername },
-    {
-      abortEarly: false,
-    }
-  );
-
-  if (validationResult.error) {
-    const errors = validationResult.error.details.map((error) => error.message);
-    return res.status(422).send(errors);
-  }
 
   try {
     const existingUsername = await db
       .collection("users")
-      .findOne({ username: sanitizedUsername });
+      .findOne({ username });
 
     if (!existingUsername) return res.status(404).send("User not found!");
 
