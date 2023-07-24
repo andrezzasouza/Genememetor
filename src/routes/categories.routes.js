@@ -16,21 +16,21 @@ categoriesRouter.get("/categories", getCategoriesList);
 categoriesRouter.post(
   "/categories",
   validateAuth,
-  validateSchema(categorySchema),
+  validateSchema(categorySchema, "body"),
   createCategory
 );
 
 categoriesRouter.put(
   "/categories/:id",
   validateAuth,
-  validateSchema(categorySchema),
+  validateSchema(categorySchema, "body"),
   editCategory
 );
 
 categoriesRouter.delete(
   "/categories/:id",
   validateAuth,
-  validateSchema(categorySchema),
+  validateSchema(categorySchema, "body"),
   deleteCategory
 );
 

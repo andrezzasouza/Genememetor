@@ -1,25 +1,34 @@
 import { db } from "../database/database.connection.js";
 import { ObjectId } from "mongodb";
 
-export async function createMeme (_req, res) {
-  const { description, imageURL, category } = res.locals.data
+export async function createMeme(_req, res) {
+  const {
+    data: { description, imageURL, category },
+    session,
+  } = res.locals;
 
   try {
     const existingImage = await db
       .collection("memes")
       .findOne({ imageURL: imageURL });
 
-    if (existingImage) {
+    if (existingImage)
       return res
         .status(409)
         .send(
           `This meme has already been added. Please, accesses it using its id: ${existingImage._id}`
         );
-    }
 
     const categoryData = await db
       .collection("categories")
       .findOne({ name: category });
+
+    if (!categoryData)
+      return res
+        .status(422)
+        .send(
+          `Invalid category name! Please, choose an existing category for your meme.`
+        );
 
     const newMeme = await db.collection("memes").insertOne({
       description,
@@ -28,29 +37,34 @@ export async function createMeme (_req, res) {
       creatorId: session.userId,
     });
 
-    res.status(201).send(newMeme._id);
+    res.status(201).send(newMeme.insertedId);
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);
   }
-};
+}
 
-export async function getAllMemes (_req, res) {
+export async function getAllMemes(_req, res) {
   const { category, username } = res.locals.data;
 
   try {
-    if (!category && !username) {
-      const allMemes = await db.collection("memes").find().toArray();
-      return res.status(200).send(allMemes);
-    }
-
-    const creatorId = await db
-      .collection("users")
-      .findOne({ username });
+    const creatorId = await db.collection("users").findOne({ username });
+    const categoryId = await db
+      .collection("categories")
+      .findOne({ name: category });
 
     const filteredMemes = await db
       .collection("memes")
-      .find({ username: creatorId._id, category: category })
+      .aggregate([
+        {
+          $match: {
+            $and: [
+              { creatorId: creatorId ? creatorId._id : { $exists: true } },
+              { categoryId: categoryId ? categoryId._id : { $exists: true } },
+            ],
+          },
+        },
+      ])
       .toArray();
 
     res.status(200).send(filteredMemes);
@@ -58,9 +72,9 @@ export async function getAllMemes (_req, res) {
     console.error(error);
     res.status(500).send(error.message);
   }
-};
+}
 
-export async function getRandomMeme (_req, res) {
+export async function getRandomMeme(_req, res) {
   try {
     const randomMeme = await db
       .collection("memes")
@@ -72,31 +86,31 @@ export async function getRandomMeme (_req, res) {
     console.error(error);
     res.status(500).send(error.message);
   }
-};
+}
 
-export async function getIdMeme (req, res) {
-  const { id } = res.locals.data;
-
-  if (!id) {
-    return res.status(404).send("Memes not found!");
-  }
+export async function getIdMeme(_req, res) {
+  const { memeId } = res.locals.data;
 
   try {
-    const idMeme = await db
+    const foundIdMeme = await db
       .collection("memes")
-      .findOne({ _id: new ObjectId(sanitizedId) });
+      .findOne({ _id: new ObjectId(memeId) });
 
-    res.status(200).send(idMeme);
+    if (!foundIdMeme) {
+      return res.status(404).send("Memes not found!");
+    }
+
+    res.status(200).send(foundIdMeme);
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);
   }
-};
+}
 
-export async function editIdMeme (req, res) {
+export async function editIdMeme(req, res) {
   const { memeId } = req.params;
-};
+}
 
-export async function deleteIdMeme (req, res) {
+export async function deleteIdMeme(req, res) {
   const { memeId } = req.params;
-};
+}

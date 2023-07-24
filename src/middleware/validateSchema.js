@@ -1,15 +1,17 @@
-export function validateSchema(schema) {
+export function validateSchema(schema, type) {
   return (req, res, next) => {
-    const validation = schema.validate(req.body, { abortEarly: false});
+    if (!type) return res.status(422).send(`Invalid data type: ${type}`);
+
+    const validation = schema.validate(req[type], { abortEarly: false });
 
     if (validation.error) {
-      const errors = validation.error.details.map(detail => detail.message);
-      console.error(errors)
+      const errors = validation.error.details.map((detail) => detail.message);
+      console.error(errors);
       return res.status(422).send(errors);
     }
 
     res.locals.data = validation.value;
 
     next();
-  }
+  };
 }
