@@ -27,7 +27,7 @@ export const getMemesQuerySchema = Joi.object({
 });
 
 export const idSchema = Joi.object({
-  memeId: Joi.string()
+  id: Joi.string()
     .custom((value) => stripHtml(value).result.trim().replace(" ", ""))
     .hex()
     .length(24)

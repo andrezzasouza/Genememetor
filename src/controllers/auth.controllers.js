@@ -2,11 +2,13 @@ import { db } from "../database/database.connection.js";
 import { v4 as uuid } from "uuid";
 import bcrypt from "bcrypt";
 
-export async function signUp (_req, res) {
-  const { username, email, password } = res.locals.data;
+export async function signUp(_req, res) {
+  const { username, email, password } = res.locals.body;
 
   try {
-    const validData = await db.collection("users").findOne({ $or: [{ username }, { email }]});
+    const validData = await db
+      .collection("users")
+      .findOne({ $or: [{ username }, { email }] });
 
     if (validData) {
       return res
@@ -29,25 +31,20 @@ export async function signUp (_req, res) {
     console.error(error);
     res.status(500).send(error.message);
   }
-};
+}
 
-export async function logIn (_req, res) {
-  const { username, password } = res.locals.data;
+export async function logIn(_req, res) {
+  const { username, password } = res.locals.body;
 
   try {
-    const userData = await db
-      .collection("users")
-      .findOne({ username });
+    const userData = await db.collection("users").findOne({ username });
 
     if (!userData)
       return res
         .status(404)
         .send("User not found! Please check and try again.");
 
-    const checkedPassword = bcrypt.compareSync(
-      password,
-      userData.password
-    );
+    const checkedPassword = bcrypt.compareSync(password, userData.password);
 
     if (!checkedPassword)
       return res
@@ -64,4 +61,4 @@ export async function logIn (_req, res) {
     console.error(error);
     res.status(500).send(error.message);
   }
-};
+}

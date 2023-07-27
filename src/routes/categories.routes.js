@@ -8,6 +8,7 @@ import {
 import { validateAuth } from "../middleware/validateAuth.js";
 import { validateSchema } from "../middleware/validateSchema.js";
 import { categorySchema } from "../schemas/categories.schemas.js";
+import { idSchema } from "../schemas/memes.schemas.js";
 
 const categoriesRouter = Router();
 
@@ -23,14 +24,14 @@ categoriesRouter.post(
 categoriesRouter.put(
   "/categories/:id",
   validateAuth,
+  validateSchema(idSchema, "params"),
   validateSchema(categorySchema, "body"),
   editCategory
 );
 
 categoriesRouter.delete(
-  "/categories/:id",
+  "/categories/:categoryId",
   validateAuth,
-  validateSchema(categorySchema, "body"),
   deleteCategory
 );
 

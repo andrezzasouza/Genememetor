@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb";
 
 export async function createMeme(_req, res) {
   const {
-    data: { description, imageURL, category },
+    body: { description, imageURL, category },
     session,
   } = res.locals;
 
@@ -45,7 +45,7 @@ export async function createMeme(_req, res) {
 }
 
 export async function getAllMemes(_req, res) {
-  const { category, username } = res.locals.data;
+  const { category, username } = res.locals.query;
 
   try {
     const creatorId = await db.collection("users").findOne({ username });
@@ -89,7 +89,7 @@ export async function getRandomMeme(_req, res) {
 }
 
 export async function getIdMeme(_req, res) {
-  const { memeId } = res.locals.data;
+  const { memeId } = res.locals.params;
 
   try {
     const foundIdMeme = await db

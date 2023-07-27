@@ -10,7 +10,7 @@ export function validateSchema(schema, type) {
       return res.status(422).send(errors);
     }
 
-    res.locals.data = validation.value;
+    res.locals[type] = validation.value;
 
     next();
   };

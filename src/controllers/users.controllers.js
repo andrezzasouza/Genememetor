@@ -1,7 +1,7 @@
 import { db } from "../database/database.connection.js";
 
 export async function getUserMemes(_req, res) {
-  const { username } = res.locals.data;
+  const { username } = res.locals.params;
 
   try {
     const existingUsername = await db.collection("users").findOne({ username });
@@ -21,9 +21,9 @@ export async function getUserMemes(_req, res) {
 }
 
 export async function editIdUser(req, res) {
-  const { id } = req.params;
+  const { userId } = req.params;
 }
 
 export async function deleteIdUser(req, res) {
-  const { id } = req.params;
+  const { userId } = req.params;
 }
