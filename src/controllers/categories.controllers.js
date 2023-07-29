@@ -56,21 +56,30 @@ export async function editCategory(_req, res) {
       return res
         .status(409)
         .send(
-          "This category already exists! Choose a new name and try again or take a look at the existing category."
+          "The chosen name has already been used to name a category! Choose a new name and try again or take a look at the existing category."
         );
     }
 
-    const originalName = await db
-      .collection("categories")
-      .findOne({ _id: new ObjectId(id) });
+    const newCategoryData = {
+      _id: new ObjectId(id),
+      name,
+    };
 
-    await db
+    const result = await db
       .collection("categories")
-      .updateOne({ name: originalName }, { $set: name });
+      .updateOne({ _id: new ObjectId(id) }, { $set: newCategoryData });
+
+    if (result.modifiedCount === 1) {
+      return res
+        .status(200)
+        .send(`The category has been renamed and is now called ${name}.`);
+    }
 
     res
-      .status(200)
-      .send(`The category has been renamed and is now called ${name}.`);
+      .status(502)
+      .send(
+        `It wasn't possible to rename the category. Please, try again.`
+      );
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);
