@@ -30,8 +30,9 @@ categoriesRouter.put(
 );
 
 categoriesRouter.delete(
-  "/categories/:categoryId",
+  "/categories/:id",
   validateAuth,
+  validateSchema(idSchema, "params"),
   deleteCategory
 );
 

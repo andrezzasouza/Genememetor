@@ -32,21 +32,17 @@ memesRouter.post(
 
 memesRouter.get("/memes/random", getRandomMeme);
 
-memesRouter.get(
-  "/memes/:memeId",
-  validateSchema(idSchema, "params"),
-  getIdMeme
-);
+memesRouter.get("/memes/:id", validateSchema(idSchema, "params"), getIdMeme);
 
 memesRouter.put(
-  "/memes/:memeId",
+  "/memes/:id",
   validateAuth,
   validateSchema(idSchema, "params"),
   editIdMeme
 );
 
 memesRouter.delete(
-  "/memes/:memeId",
+  "/memes/:id",
   validateAuth,
   validateSchema(idSchema, "params"),
   deleteIdMeme

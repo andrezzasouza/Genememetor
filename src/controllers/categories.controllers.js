@@ -86,9 +86,13 @@ export async function editCategory(_req, res) {
         );
     }
 
+    const originalName = await db
+      .collection("categories")
+      .findOne({ _id: new ObjectId(id) });
+
     await db
       .collection("categories")
-      .updateOne({ _id: new ObjectId(id) }, { $set: name });
+      .updateOne({ name: originalName }, { $set: name });
 
     res
       .status(200)
@@ -99,4 +103,56 @@ export async function editCategory(_req, res) {
   }
 }
 
-export async function deleteCategory(req, res) {}
+export async function deleteCategory(_req, res) {
+  const {
+    session,
+    params: { id },
+  } = res.locals;
+
+  try {
+    const adminUser = await db
+      .collection("admins")
+      .findOne({ userId: new ObjectId(session.userId) });
+
+    if (!adminUser) {
+      return res
+        .status(403)
+        .send(
+          "You don't have the necessary access level to create new categories! Please, check your credentials and try again."
+        );
+    }
+
+    const existingCategory = await db
+      .collection("categories")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!existingCategory) {
+      return res
+        .status(404)
+        .send(
+          "This category hasn't been found and can't be deleted! Choose a new category id and try again."
+        );
+    }
+
+    const result = await db
+      .collection("categories")
+      .deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 1) {
+      return res
+        .status(200)
+        .send(
+          `The "${existingCategory.name}" category has been successfully deleted.`
+        );
+    }
+
+    res
+      .status(502)
+      .send(
+        `It wasn't possible to delete the category named ${existingCategory.name}. Please, try again.`
+      );
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
+}

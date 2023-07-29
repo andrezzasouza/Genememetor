@@ -89,12 +89,12 @@ export async function getRandomMeme(_req, res) {
 }
 
 export async function getIdMeme(_req, res) {
-  const { memeId } = res.locals.params;
+  const { id } = res.locals.params;
 
   try {
     const foundIdMeme = await db
       .collection("memes")
-      .findOne({ _id: new ObjectId(memeId) });
+      .findOne({ _id: new ObjectId(id) });
 
     if (!foundIdMeme) {
       return res.status(404).send("Memes not found!");
