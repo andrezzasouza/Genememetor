@@ -7,6 +7,7 @@ import {
 import { usernameSchema } from "../schemas/users.schemas.js";
 import { validateAuth } from "../middleware/validateAuth.js";
 import { validateSchema } from "../middleware/validateSchema.js";
+import { idSchema } from "../schemas/memes.schemas.js";
 
 const usersRouter = Router();
 
@@ -17,16 +18,16 @@ usersRouter.get(
 );
 
 usersRouter.put(
-  "/users/:userId",
+  "/users/:id",
   validateAuth,
-  validateSchema(usernameSchema, "params"),
+  validateSchema(idSchema, "params"),
   editIdUser
 );
 
 usersRouter.delete(
-  "/users/:userId",
+  "/users/:id",
   validateAuth,
-  validateSchema(usernameSchema, "params"),
+  validateSchema(idSchema, "params"),
   deleteIdUser
 );
 

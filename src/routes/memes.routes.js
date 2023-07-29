@@ -38,6 +38,7 @@ memesRouter.put(
   "/memes/:id",
   validateAuth,
   validateSchema(idSchema, "params"),
+  validateSchema(newMemeSchema, "body"),
   editIdMeme
 );
 

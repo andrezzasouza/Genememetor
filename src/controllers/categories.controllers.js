@@ -50,9 +50,21 @@ export async function editCategory(_req, res) {
   try {
     const existingCategory = await db
       .collection("categories")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!existingCategory) {
+      return res
+        .status(404)
+        .send(
+          "This category hasn't been found and can't be edited! Choose a new category id and try again."
+        );
+    }
+
+    const existingCategoryName = await db
+      .collection("categories")
       .findOne({ name });
 
-    if (existingCategory) {
+    if (existingCategoryName) {
       return res
         .status(409)
         .send(
@@ -77,9 +89,7 @@ export async function editCategory(_req, res) {
 
     res
       .status(502)
-      .send(
-        `It wasn't possible to rename the category. Please, try again.`
-      );
+      .send(`It wasn't possible to rename the category. Please, try again.`);
   } catch (error) {
     console.error(error);
     res.status(500).send(error.message);
