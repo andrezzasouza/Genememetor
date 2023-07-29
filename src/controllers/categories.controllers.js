@@ -14,23 +14,10 @@ export async function getCategoriesList(_req, res) {
 
 export async function createCategory(_req, res) {
   const {
-    session,
     body: { name },
   } = res.locals;
 
   try {
-    const adminUser = await db
-      .collection("admins")
-      .findOne({ userId: new ObjectId(session.userId) });
-
-    if (!adminUser) {
-      return res
-        .status(403)
-        .send(
-          "You don't have the necessary access level to create new categories! Please, check your credentials and try again."
-        );
-    }
-
     const existingCategory = await db
       .collection("categories")
       .findOne({ name });
@@ -56,24 +43,11 @@ export async function createCategory(_req, res) {
 
 export async function editCategory(_req, res) {
   const {
-    session,
     params: { id },
     body: { name },
   } = res.locals;
 
   try {
-    const adminUser = await db
-      .collection("admins")
-      .findOne({ userId: new ObjectId(session.userId) });
-
-    if (!adminUser) {
-      return res
-        .status(403)
-        .send(
-          "You don't have the necessary access level to create new categories! Please, check your credentials and try again."
-        );
-    }
-
     const existingCategory = await db
       .collection("categories")
       .findOne({ name });
@@ -105,23 +79,10 @@ export async function editCategory(_req, res) {
 
 export async function deleteCategory(_req, res) {
   const {
-    session,
     params: { id },
   } = res.locals;
 
   try {
-    const adminUser = await db
-      .collection("admins")
-      .findOne({ userId: new ObjectId(session.userId) });
-
-    if (!adminUser) {
-      return res
-        .status(403)
-        .send(
-          "You don't have the necessary access level to create new categories! Please, check your credentials and try again."
-        );
-    }
-
     const existingCategory = await db
       .collection("categories")
       .findOne({ _id: new ObjectId(id) });
