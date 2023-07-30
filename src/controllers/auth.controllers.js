@@ -54,6 +54,8 @@ export async function logIn(_req, res) {
         );
 
     const token = uuid();
+    
+    await db.collection("sessions").deleteMany({ userId: userData._id });
     await db.collection("sessions").insertOne({ userId: userData._id, token });
 
     res.send(token);
