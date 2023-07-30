@@ -21,9 +21,11 @@ export async function getUserMemes(_req, res) {
 }
 
 export async function editIdUser(req, res) {
-  const { userId } = req.params;
+  const { id } = req.params;
 }
 
 export async function deleteIdUser(req, res) {
-  const { userId } = req.params;
+  const { id } = req.params;
 }
+
+export async function changeIdUserPassword(req, res) {}

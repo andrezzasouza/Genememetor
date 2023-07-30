@@ -8,6 +8,7 @@ import {
   editIdMeme,
   deleteIdMeme,
   getIdMeme,
+  voteIdMeme
 } from "../controllers/memes.controllers.js";
 import {
   newMemeSchema,
@@ -23,6 +24,10 @@ memesRouter.get(
   getAllMemes
 );
 
+memesRouter.get("/memes/random", getRandomMeme);
+
+memesRouter.get("/memes/:id", validateSchema(idSchema, "params"), getIdMeme);
+
 memesRouter.post(
   "/memes",
   validateAuth,
@@ -30,9 +35,19 @@ memesRouter.post(
   createMeme
 );
 
-memesRouter.get("/memes/random", getRandomMeme);
+memesRouter.post(
+  "/memes/:id/up",
+  validateAuth,
+  validateSchema(idSchema, "params"),
+  voteIdMeme
+);
 
-memesRouter.get("/memes/:id", validateSchema(idSchema, "params"), getIdMeme);
+memesRouter.post(
+  "/memes/:id/down",
+  validateAuth,
+  validateSchema(idSchema, "params"),
+  voteIdMeme
+);
 
 memesRouter.put(
   "/memes/:id",

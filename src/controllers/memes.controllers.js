@@ -97,7 +97,11 @@ export async function getIdMeme(_req, res) {
       .findOne({ _id: new ObjectId(id) });
 
     if (!foundIdMeme) {
-      return res.status(404).send("Memes not found!");
+      return res
+        .status(404)
+        .send(
+          "This meme hasn't been found! Choose another meme id and try again."
+        );
     }
 
     res.status(200).send(foundIdMeme);
@@ -107,10 +111,61 @@ export async function getIdMeme(_req, res) {
   }
 }
 
-export async function editIdMeme(req, res) {
-  const { memeId } = req.params;
+export async function editIdMeme(_req, res) {
+  const { id } = res.locals.params;
 }
 
-export async function deleteIdMeme(req, res) {
-  const { memeId } = req.params;
+export async function deleteIdMeme(_req, res) {
+  const {
+    params: { id },
+    session,
+  } = res.locals;
+
+  try {
+    const existingMeme = await db
+      .collection("memes")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!existingMeme) {
+      return res
+        .status(404)
+        .send(
+          "This meme hasn't been found and can't be deleted! Choose another meme id and try again."
+        );
+    }
+
+    const adminUser = await db
+      .collection("admins")
+      .findOne({ userId: new ObjectId(session.userId) });
+
+    if (!existingMeme.creatorId === session.userId || !adminUser) {
+      return res
+        .status(403)
+        .send(
+          "You don't own this meme or you don't have the necessary access level to delete it! Please, check your credentials and try again."
+        );
+    }
+
+    const result = await db
+      .collection("memes")
+      .deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 1) {
+      return res
+        .status(200)
+        .send(
+          `The "${existingCategory.name}" meme has been successfully deleted.`
+        );
+    }
+
+    res
+      .status(502)
+      .send(
+        `It wasn't possible to delete the meme named ${existingCategory.name}. Please, try again.`
+      );
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
 }
+
+export async function voteIdMeme(req, res) {}
