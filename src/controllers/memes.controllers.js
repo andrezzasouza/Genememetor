@@ -168,4 +168,51 @@ export async function deleteIdMeme(_req, res) {
   }
 }
 
-export async function voteIdMeme(req, res) {}
+export async function voteIdMeme(req, res) {
+  const splitString = req.route.path.split("/");
+  const voteType = splitString[splitString.length - 1];
+
+  const {
+    params: { id },
+    session,
+  } = res.locals;
+
+  try {
+    const existingMeme = await db
+      .collection("memes")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!existingMeme) {
+      return res
+        .status(404)
+        .send(
+          "This meme hasn't been found! Choose another meme id and try again."
+        );
+    }
+
+    const vote = {
+      memeId: new ObjectId(id),
+      voterId: new ObjectId(session.userId),
+      voteType,
+    };
+
+    await db.collection("votes").insertOne(vote);
+
+    let voteInserted = "Your vote has been added!";
+
+    const downVotesCount = await db
+      .collection("votes")
+      .countDocuments({ memeId: new ObjectId(id), voteType: "down" });
+
+    if (downVotesCount >= 50) {
+      await db.collection("memes").deleteOne({ _id: new ObjectId(id) });
+      await db.collection("votes").deleteMany({ memeId: new ObjectId(id) });
+      voteInserted += " This meme has exceeded the maximum number of down votes and has been deleted.";
+    }
+
+    res.status(201).send(voteInserted);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
+}
