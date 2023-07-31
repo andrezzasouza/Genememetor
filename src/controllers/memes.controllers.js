@@ -169,13 +169,19 @@ export async function editIdMeme(_req, res) {
       );
 
     if (updateMeme.modifiedCount === 1 && updateMeme.matchedCount === 1) {
-      console.log(newMemeData);
-      console.log(updateMeme);
-      return res.status(200).send(`The meme has been updated successfully! Its description and/or category had been changed.`);
+      return res
+        .status(200)
+        .send(
+          `The meme has been updated successfully! Its description and/or category had been changed.`
+        );
     }
 
     if (updateMeme.modifiedCount === 0 && updateMeme.matchedCount === 1) {
-      return res.status(200).send(`The meme has been updated, but no changes were made as the new description and category are identical to the old description and category.`);
+      return res
+        .status(200)
+        .send(
+          `The meme has been updated, but no changes were made as the new description and category are identical to the old description and category.`
+        );
     }
 
     res
@@ -202,7 +208,7 @@ export async function deleteIdMeme(_req, res) {
       return res
         .status(404)
         .send(
-          "This meme hasn't been found and can't be deleted! Choose another meme id and try again."
+          "This meme hasn't been found and couldn't be deleted! Choose another meme id and try again."
         );
     }
 
@@ -230,7 +236,7 @@ export async function deleteIdMeme(_req, res) {
     }
 
     res
-      .status(502)
+      .status(400)
       .send(
         `It wasn't possible to delete the meme named ${existingCategory.name}. Please, try again.`
       );
