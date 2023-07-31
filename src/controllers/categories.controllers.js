@@ -48,23 +48,9 @@ export async function editCategory(_req, res) {
   } = res.locals;
 
   try {
-    const existingCategory = await db
-      .collection("categories")
-      .findOne({ _id: new ObjectId(id) });
+    const existingName = await db.collection("categories").findOne({ name });
 
-    if (!existingCategory) {
-      return res
-        .status(404)
-        .send(
-          "This category hasn't been found and can't be edited! Choose a new category id and try again."
-        );
-    }
-
-    const existingCategoryName = await db
-      .collection("categories")
-      .findOne({ name });
-
-    if (existingCategoryName) {
+    if (existingName) {
       return res
         .status(409)
         .send(
@@ -73,22 +59,37 @@ export async function editCategory(_req, res) {
     }
 
     const newCategoryData = {
-      _id: new ObjectId(id),
       name,
     };
 
-    const result = await db
+    const updateCategory = await db
       .collection("categories")
       .updateOne({ _id: new ObjectId(id) }, { $set: newCategoryData });
 
-    if (result.modifiedCount === 1) {
+    if (updateCategory.matchedCount === 0) {
+      return res
+        .status(404)
+        .send(
+          "This category hasn't been found and can't be edited! Choose a new category id and try again."
+        );
+    }
+
+    if (updateCategory.modifiedCount === 1 || updateMeme.matchedCount === 1) {
       return res
         .status(200)
         .send(`The category has been renamed and is now called ${name}.`);
     }
 
+    if (updateCategory.modifiedCount === 0 || updateMeme.matchedCount === 1) {
+      return res
+        .status(200)
+        .send(
+          `The category has been updated, but no changes were made as the new category name is identical to the old name.`
+        );
+    }
+
     res
-      .status(502)
+      .status(400)
       .send(`It wasn't possible to rename the category. Please, try again.`);
   } catch (error) {
     console.error(error);
@@ -102,32 +103,26 @@ export async function deleteCategory(_req, res) {
   } = res.locals;
 
   try {
-    const existingCategory = await db
-      .collection("categories")
-      .findOne({ _id: new ObjectId(id) });
-
-    if (!existingCategory) {
-      return res
-        .status(404)
-        .send(
-          "This category hasn't been found and can't be deleted! Choose a new category id and try again."
-        );
-    }
-
     const result = await db
       .collection("categories")
       .deleteOne({ _id: new ObjectId(id) });
 
-    if (result.deletedCount === 1) {
+    if (result.deletedCount === 1 && result.acknowledged) {
       return res
         .status(200)
+        .send(`The category has been successfully deleted!`);
+    }
+
+    if (result.deletedCount === 0 && result.acknowledged) {
+      return res
+        .status(404)
         .send(
-          `The "${existingCategory.name}" category has been successfully deleted.`
+          "This category hasn't been found and couldn't be deleted! Choose a new category id and try again."
         );
     }
 
     res
-      .status(502)
+      .status(400)
       .send(
         `It wasn't possible to delete the category named ${existingCategory.name}. Please, try again.`
       );
