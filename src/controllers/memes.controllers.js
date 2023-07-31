@@ -112,7 +112,79 @@ export async function getIdMeme(_req, res) {
 }
 
 export async function editIdMeme(_req, res) {
-  const { id } = res.locals.params;
+  const {
+    params: { id },
+    session,
+    body: { description, category },
+  } = res.locals;
+
+  try {
+    const existingMeme = await db
+      .collection("memes")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!existingMeme) {
+      return res
+        .status(404)
+        .send(
+          "This meme hasn't been found and can't be edited! Choose another meme id and try again."
+        );
+    }
+
+    const adminUser = await db
+      .collection("admins")
+      .findOne({ userId: new ObjectId(session.userId) });
+
+    if (!existingMeme.creatorId === session.userId || !adminUser) {
+      return res
+        .status(403)
+        .send(
+          "You don't own this or you don't have the necessary access level to edit it! Please, check your credentials and try again."
+        );
+    }
+
+    const categoryData = await db
+      .collection("categories")
+      .findOne({ name: category });
+
+    if (!categoryData) {
+      return res
+        .status(422)
+        .send(
+          `Invalid category name! Please, choose an existing category for your meme.`
+        );
+    }
+
+    const newMemeData = {
+      description,
+      categoryId: categoryData._id,
+    };
+
+    const updateMeme = await db
+      .collection("memes")
+      .updateOne(
+        { _id: new ObjectId(id) },
+        { $set: newMemeData },
+        { $multi: true }
+      );
+
+    if (updateMeme.modifiedCount === 1 && updateMeme.matchedCount === 1) {
+      console.log(newMemeData);
+      console.log(updateMeme);
+      return res.status(200).send(`The meme has been updated successfully! Its description and/or category had been changed.`);
+    }
+
+    if (updateMeme.modifiedCount === 0 && updateMeme.matchedCount === 1) {
+      return res.status(200).send(`The meme has been updated, but no changes were made as the new description and category are identical to the old description and category.`);
+    }
+
+    res
+      .status(400)
+      .send(`It wasn't possible to update the meme. Please, try again.`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error.message);
+  }
 }
 
 export async function deleteIdMeme(_req, res) {
@@ -207,7 +279,8 @@ export async function voteIdMeme(req, res) {
     if (downVotesCount >= 50) {
       await db.collection("memes").deleteOne({ _id: new ObjectId(id) });
       await db.collection("votes").deleteMany({ memeId: new ObjectId(id) });
-      voteInserted += " This meme has exceeded the maximum number of down votes and has been deleted.";
+      voteInserted +=
+        " This meme has exceeded the maximum number of down votes and has been deleted.";
     }
 
     res.status(201).send(voteInserted);

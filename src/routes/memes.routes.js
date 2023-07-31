@@ -13,6 +13,7 @@ import {
 import {
   newMemeSchema,
   getMemesQuerySchema,
+  editMemeSchema,
   idSchema,
 } from "../schemas/memes.schemas.js";
 
@@ -53,7 +54,7 @@ memesRouter.put(
   "/memes/:id",
   validateAuth,
   validateSchema(idSchema, "params"),
-  validateSchema(newMemeSchema, "body"),
+  validateSchema(editMemeSchema, "body"),
   editIdMeme
 );
 
