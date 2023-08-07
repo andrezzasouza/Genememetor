@@ -22,6 +22,6 @@ export const newPasswordSchema = Joi.object({
     .required(),
   repeatNewPassword: Joi.string()
     .custom((value) => stripHtml(value).result.trim().replace(" ", ""))
-    .valid(Joi.ref("password"))
+    .valid(Joi.ref("newPassword"))
     .required(),
 });
